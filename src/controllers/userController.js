@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -68,9 +69,37 @@ const updateUser = async (req, res) => {
 	}
 }
 
+const login = async (req, res) => {
+	try {
+		const { email, password } = req.body
+
+		const user = await prisma.user.findUnique({
+			where: {
+				email,
+			}
+		})
+
+		if (!user || user.password !== password) {
+			return res.status(401).json({error: "Invalid credentials"});
+		}
+
+    const token = jwt.sign({ userId: user.id }, 'mysecret', { expiresIn: '1h' });
+    res.json({ token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Internal server error');
+  }
+}
+
+const logout = (req, res) => {
+	res.json({ auth: false, token: null });
+}
+
 module.exports = {
-  getAllUsers,
+	getAllUsers,
   createUser,
   deleteUser,
   updateUser,
+	login,
+	logout
 }
